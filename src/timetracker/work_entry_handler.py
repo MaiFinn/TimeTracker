@@ -17,7 +17,8 @@ class workentry:
 def create_work_entry(
         working_date: str,
         start_time: str,
-        end_time: str     
+        end_time: str,
+        file_path: Path | None = None,
 ) -> json:
         
         """
@@ -28,6 +29,11 @@ def create_work_entry(
             start_time (str): Start of working
             end_time (str): End of working
         """
+        if file_path is None:
+            PROJECT_ROOT = Path(__file__).resolve().parents[2]
+            ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
+            ARTIFACTS_DIR.mkdir(exist_ok=True)
+            file_path = ARTIFACTS_DIR / "work_entries.json"
         
         parsed_start_time = datetime.strptime(start_time, "%H:%M").time()
         parsed_end_time = datetime.strptime(end_time, "%H:%M").time()
@@ -45,7 +51,6 @@ def create_work_entry(
                 )
         
         work_entry_dict = asdict(work_entry)
-        file_path = Path("work_entries.json")
 
         if file_path.exists():
                 with open(file_path, "r") as f:
