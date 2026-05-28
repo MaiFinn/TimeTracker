@@ -4,6 +4,7 @@ tracker.json
 # test notebooks
 notebooks/
 01_sketches.ipynb
+*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
