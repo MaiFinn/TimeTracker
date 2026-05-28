@@ -1,1 +1,13 @@
+coverage==7.14.1
+iniconfig==2.3.0
 numpy==2.4.6
+packaging==26.2
+pandas==3.0.3
+pathlib==1.0.1
+pluggy==1.6.0
+Pygments==2.20.0
+pytest==9.0.3
+pytest-cov==7.1.0
+python-dateutil==2.9.0.post0
+six==1.17.0
+-e git+https://github.com/MaiFinn/TimeTracker.git@53972cfe2c95f96557ca1c4ead73477d8d8d91a9#egg=timetracker
