@@ -64,13 +64,13 @@ class TimeTracker:
     def add_entry(self, day: str, hours: float, note: str = "") -> None:
         _parse_date(day)
         if hours < 0:
-            raise ValueError("hours must be greater than or equal to 0")
+            raise ValueError("hours must be non-negative")
         self.data.entries.append(WorkEntry(day=day, hours=hours, note=note))
         self.data.entries.sort(key=lambda item: item.day)
         self.save()
 
     def month_entries(self, month: str) -> list[WorkEntry]:
-        datetime.strptime(month, "%Y-%m")
+        _parse_month(month)
         return [entry for entry in self.data.entries if entry.day.startswith(month)]
 
     def summary(self, month: Optional[str] = None) -> tuple[float, Optional[float]]:
@@ -83,6 +83,10 @@ class TimeTracker:
 
 def _parse_date(value: str) -> date:
     return datetime.strptime(value, "%Y-%m-%d").date()
+
+
+def _parse_month(value: str) -> datetime:
+    return datetime.strptime(value, "%Y-%m")
 
 
 def _build_parser() -> argparse.ArgumentParser:
