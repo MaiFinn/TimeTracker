@@ -19,6 +19,9 @@ dev = [
     "pytest-cov",
 ]
 
+[project.scripts]
+timetracker = "timetracker.cli:app"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
