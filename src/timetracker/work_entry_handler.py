@@ -2,6 +2,9 @@ from datetime import datetime, date, time
 from dataclasses import dataclass, asdict
 import json
 from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -34,6 +37,7 @@ def create_work_entry(
             ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
             ARTIFACTS_DIR.mkdir(exist_ok=True)
             file_path = ARTIFACTS_DIR / "work_entries.json"
+            logger.debug(f"Writing work entry file to {file_path}.")
         
         parsed_start_time = datetime.strptime(start_time, "%H:%M").time()
         parsed_end_time = datetime.strptime(end_time, "%H:%M").time()
