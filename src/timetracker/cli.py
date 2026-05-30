@@ -2,10 +2,9 @@ from pathlib import Path
 import typer
 import logging
 
-from timetracker.utils.logging import setup_logger
-from timetracker.utils.logging import setup_logger
+from timetracker.utils.logger import setup_logger
 from timetracker.work_entry_handler import create_work_entry
-from timetracker.contract_handler import create_contract
+from timetracker.contract_handler import create_contract as create_work_entry_file
 
 setup_logger(name="timetracker", log_file="artifacts/logs/timetracker.log")
 logger = logging.getLogger(__name__)
@@ -46,6 +45,29 @@ def create_new_contract(
     logger.info("Contract successfully created.")
     typer.echo("Contract successfully created.")
 
+@app.command()
+def create_work_entry_file(
+    date: str = typer.Option(..., "--working-date", "-wd", help="Define working date in format YYYY-MM-DD."),
+    start_time: str = typer.Option(..., "--start-time", "-st", help="Define start time in format HH:MM."),
+    end_time: str = typer.Option(..., "--end-time", "-et", help="Define end time in format HH:MM."),
+) -> None:
+    """_summary_
+
+    Args:
+        date (str, optional): _description_. Defaults to typer.Option(..., "--working-date", "-wd", help="Define working date in format YYYY-MM-DD.").
+        start_time (_type_, optional): _description_. Defaults to typer.Option(..., "--start-time", "-st", help="Define start time in format HH:MM.").
+        end_time (_type_, optional): _description_. Defaults to typer.Option(..., "--end-time", "-et", helo="Define end time in format HH:MM.").
+    """
+
+    logger.info("Create new work entry.")
+
+    create_work_entry(
+        date,
+        start_time,
+        end_time,
+    )
+
+    logger.info("Created new work entry.")
 
 if __name__ == "__main__":
     app()
