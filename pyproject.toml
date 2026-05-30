@@ -12,6 +12,8 @@ dependencies = [
     "numpy",
     "pandas",
     "typer",
+    "streamlit",
+    "streamlit-calendar",
 ]
 
 [project.optional-dependencies]
