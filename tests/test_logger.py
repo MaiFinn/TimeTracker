@@ -1,4 +1,4 @@
-from timetracker.utils.logging import setup_logger
+from timetracker.utils.logger import setup_logger
 
 
 def test_setup_logger_writes_to_file(tmp_path) -> None:
