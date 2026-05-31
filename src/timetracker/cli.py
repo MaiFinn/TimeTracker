@@ -69,17 +69,12 @@ def create_new_contract(
 
 @app.command()
 def add_work_entry(
-    date: str = typer.Option(..., "--working-date", "-wd", help="Define working date in format YYYY-MM-DD."),
-    start_time: str = typer.Option(..., "--start-time", "-st", help="Define start time in format HH:MM."),
-    end_time: str = typer.Option(..., "--end-time", "-et", help="Define end time in format HH:MM."),
+    date: str = typer.Option(..., "--working-date", "-wd"),
+    start_time: str = typer.Option(..., "--start-time", "-st"),
+    end_time: str = typer.Option(..., "--end-time", "-et"),
+    file_path: Path | None = typer.Option(None, "--file-path"),
 ) -> None:
-    """_summary_
-
-    Args:
-        date (str, optional): _description_. Defaults to typer.Option(..., "--working-date", "-wd", help="Define working date in format YYYY-MM-DD.").
-        start_time (_type_, optional): _description_. Defaults to typer.Option(..., "--start-time", "-st", help="Define start time in format HH:MM.").
-        end_time (_type_, optional): _description_. Defaults to typer.Option(..., "--end-time", "-et", helo="Define end time in format HH:MM.").
-    """
+    """Create a new work entry."""
 
     logger.info("Create new work entry.")
 
@@ -87,9 +82,11 @@ def add_work_entry(
         date,
         start_time,
         end_time,
+        file_path=file_path,
     )
 
     logger.info("Created new work entry.")
+    typer.echo("Work entry successfully created.")
 
 if __name__ == "__main__":
     app()
