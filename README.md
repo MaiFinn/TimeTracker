@@ -211,6 +211,9 @@ This project emphasizes:
 - Login/Users
 - List view/calendar view
 - make it more beautiful
+- comments for work entries
+- add files to work entries
+- flag/tag work entries for "planned" (but never happened) and "actual"
 
 # License
 
