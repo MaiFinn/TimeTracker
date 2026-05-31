@@ -6,19 +6,9 @@ from streamlit_calendar import calendar
 
 from timetracker.storage.json_storage import load_json, save_json
 from timetracker.work_entry_handler import create_work_entry
+from timetracker.utils.time_utils import calculate_total_time
 
 WORK_ENTRIES_FILE = Path("artifacts/work_entries.json")
-
-
-def calculate_total_time(start_time, end_time) -> str:
-    """Calculate total working time between start and end time."""
-
-    start_datetime = datetime.combine(datetime.today(), start_time)
-    end_datetime = datetime.combine(datetime.today(), end_time)
-
-    duration = end_datetime - start_datetime
-
-    return str(duration)
 
 
 def work_entries_to_calendar_events(work_entries: list[dict]) -> list[dict]:

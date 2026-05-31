@@ -1,9 +1,10 @@
 from dataclasses import asdict, dataclass
-from datetime import date, datetime, time
+from datetime import datetime
 from pathlib import Path
 import logging
 
 from timetracker.storage.json_storage import load_json, save_json
+from timetracker.utils.time_utils import calculate_total_time
 
 logger = logging.getLogger(__name__)
 
@@ -36,16 +37,13 @@ def create_work_entry(
     parsed_start_time = datetime.strptime(start_time, "%H:%M").time()
     parsed_end_time = datetime.strptime(end_time, "%H:%M").time()
 
-    start_datetime = datetime.combine(date.today(), parsed_start_time)
-    end_datetime = datetime.combine(date.today(), parsed_end_time)
-
-    duration = end_datetime - start_datetime
+    duration = calculate_total_time(parsed_start_time, parsed_end_time)
 
     work_entry = WorkEntry(
         date=working_date,
         start_time=str(parsed_start_time),
         end_time=str(parsed_end_time),
-        total_time=str(duration),
+        total_time=duration,
     )
 
     work_entries = load_json(file_path, default=[])
