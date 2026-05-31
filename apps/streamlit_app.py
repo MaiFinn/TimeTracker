@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 from pathlib import Path
 
@@ -6,33 +5,13 @@ import streamlit as st
 from streamlit_calendar import calendar
 
 from timetracker.contract_handler import create_contract
+from timetracker.storage.json_storage import load_json, save_json
 from timetracker.work_entry_handler import create_work_entry
 
 CONTRACT_FILE = Path("artifacts/contract.json")
 WORK_ENTRIES_FILE = Path("artifacts/work_entries.json")
 
 st.title("TimeTracker")
-
-
-def load_contract() -> dict | None:
-    if CONTRACT_FILE.exists():
-        with open(CONTRACT_FILE, "r") as f:
-            return json.load(f)
-    return None
-
-
-def load_work_entries() -> list[dict]:
-    if WORK_ENTRIES_FILE.exists():
-        with open(WORK_ENTRIES_FILE, "r") as f:
-            return json.load(f)
-    return []
-
-
-def save_work_entries(work_entries: list[dict]) -> None:
-    WORK_ENTRIES_FILE.parent.mkdir(parents=True, exist_ok=True)
-
-    with open(WORK_ENTRIES_FILE, "w") as f:
-        json.dump(work_entries, f, indent=4)
 
 
 def calculate_total_time(start_time, end_time) -> str:
@@ -69,7 +48,7 @@ if "selected_entry_id" not in st.session_state:
     st.session_state.selected_entry_id = None
 
 
-contract = load_contract()
+contract = load_json(CONTRACT_FILE, default=None)
 
 
 if st.session_state.page == "home":
@@ -82,7 +61,7 @@ if st.session_state.page == "home":
     st.divider()
     st.subheader("Work calendar")
 
-    work_entries = load_work_entries()
+    work_entries = load_json(WORK_ENTRIES_FILE, default=[])
     calendar_events = work_entries_to_calendar_events(work_entries)
 
     calendar_result = calendar(
@@ -162,7 +141,7 @@ if st.session_state.page == "home":
                     "total_time": calculate_total_time(edit_start_time, edit_end_time),
                 }
 
-                save_work_entries(work_entries)
+                save_json(WORK_ENTRIES_FILE, work_entries)
 
                 st.success("Work entry updated.")
                 st.session_state.selected_entry_id = None
@@ -170,7 +149,7 @@ if st.session_state.page == "home":
 
             if st.button("Delete work entry"):
                 work_entries.pop(entry_id)
-                save_work_entries(work_entries)
+                save_json(WORK_ENTRIES_FILE, work_entries)
 
                 st.success("Work entry deleted.")
                 st.session_state.selected_entry_id = None
