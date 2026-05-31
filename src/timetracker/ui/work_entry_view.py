@@ -71,7 +71,8 @@ def render_work_entry_page(
             "initialDate": initial_date,
             "selectable": True,
             "selectMirror": True,
-            "editable": False,
+            "editable": True,
+            "displayEventTime": False,
             "headerToolbar": {
                 "left": "",
                 "center": "title",
