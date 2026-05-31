@@ -30,7 +30,6 @@ where = ["src"]
 
 [tool.coverage.run]
 omit = [
-    "src/timetracker/cli.py",
     "src/timetracker/ui/*",
 ]
 

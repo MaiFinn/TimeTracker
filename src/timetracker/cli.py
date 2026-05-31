@@ -4,14 +4,36 @@ import logging
 
 from timetracker.utils.logger import setup_logger
 from timetracker.work_entry_handler import create_work_entry
-from timetracker.contract_handler import create_contract as create_work_entry_file
+from timetracker.contract_handler import create_contract
+from timetracker.storage.json_storage import load_json
+from timetracker.summary import calculate_work_balance
 
 setup_logger(name="timetracker", log_file="artifacts/logs/timetracker.log")
 logger = logging.getLogger(__name__)
 
+CONTRACT_FILE = Path("artifacts/contract.json")
+WORK_ENTRIES_FILE = Path("artifacts/work_entries.json")
+
 app = typer.Typer(
     help="TimeTracker command-line interface.",
 )
+
+@app.command()
+def summary() -> None:
+    """Show working time summary."""
+
+    contract = load_json(CONTRACT_FILE, default=None)
+    work_entries = load_json(WORK_ENTRIES_FILE, default=[])
+
+    if contract is None:
+        typer.echo("No contract found. Please create a contract first.")
+        return
+
+    balance = calculate_work_balance(contract, work_entries)
+
+    typer.echo(f"Actual hours: {balance['actual_hours']:.2f} h")
+    typer.echo(f"Expected hours: {balance['expected_hours']:.2f} h")
+    typer.echo(f"Balance: {balance['balance_hours']:.2f} h")
 
 @app.command()
 def create_new_contract(
@@ -46,7 +68,7 @@ def create_new_contract(
     typer.echo("Contract successfully created.")
 
 @app.command()
-def create_work_entry_file(
+def add_work_entry(
     date: str = typer.Option(..., "--working-date", "-wd", help="Define working date in format YYYY-MM-DD."),
     start_time: str = typer.Option(..., "--start-time", "-st", help="Define start time in format HH:MM."),
     end_time: str = typer.Option(..., "--end-time", "-et", help="Define end time in format HH:MM."),
