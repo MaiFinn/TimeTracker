@@ -28,6 +28,12 @@ timetracker = "timetracker.cli:app"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.coverage.run]
+omit = [
+    "src/timetracker/cli.py",
+    "src/timetracker/ui/*",
+]
+
 [tool.pytest.ini_options]
 addopts = "--cov=timetracker --cov-report=term-missing --cov-fail-under=50"
 testpaths = ["tests"]
