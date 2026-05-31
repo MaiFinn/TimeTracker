@@ -21,10 +21,11 @@ def render_dashboard(
         st.info("Create a contract to see your working time balance.")
         return
 
-    _render_month_selector(month_names)
     _render_total_balance(contract, work_entries)
-    _render_monthly_balance(contract, work_entries, month_names)
     _render_total_balance_chart(contract, work_entries)
+    st.divider()
+    _render_month_selector(month_names)
+    _render_monthly_balance(contract, work_entries, month_names)
 
 
 def _render_month_selector(month_names: list[str]) -> None:

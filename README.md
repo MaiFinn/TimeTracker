@@ -206,6 +206,12 @@ This project emphasizes:
 
 ---
 
+# Ideas
+
+- Login/Users
+- List view/calendar view
+- make it more beautiful
+
 # License
 
 MIT License
