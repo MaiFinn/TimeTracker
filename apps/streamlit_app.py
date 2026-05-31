@@ -1,43 +1,14 @@
-from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
-from streamlit_calendar import calendar
 
-from timetracker.contract_handler import create_contract
-from timetracker.storage.json_storage import load_json, save_json
-from timetracker.work_entry_handler import create_work_entry
+from timetracker.storage.json_storage import load_json
 from timetracker.ui.contract_view import render_contract_page
+from timetracker.ui.work_entry_view import render_work_entry_page
 
 CONTRACT_FILE = Path("artifacts/contract.json")
-WORK_ENTRIES_FILE = Path("artifacts/work_entries.json")
 
 st.title("TimeTracker")
-
-
-def calculate_total_time(start_time, end_time) -> str:
-    start_datetime = datetime.combine(datetime.today(), start_time)
-    end_datetime = datetime.combine(datetime.today(), end_time)
-
-    duration = end_datetime - start_datetime
-    return str(duration)
-
-
-def work_entries_to_calendar_events(work_entries: list[dict]) -> list[dict]:
-    events = []
-
-    for index, entry in enumerate(work_entries):
-        events.append(
-            {
-                "id": str(index),
-                "title": entry["total_time"],
-                "start": f"{entry['date']}T{entry['start_time']}",
-                "end": f"{entry['date']}T{entry['end_time']}",
-            }
-        )
-
-    return events
-
 
 if "page" not in st.session_state:
     st.session_state.page = "home"
@@ -60,101 +31,8 @@ if st.session_state.page == "home":
         st.rerun()
 
     st.divider()
-    st.subheader("Work calendar")
 
-    work_entries = load_json(WORK_ENTRIES_FILE, default=[])
-    calendar_events = work_entries_to_calendar_events(work_entries)
-
-    calendar_result = calendar(
-        events=calendar_events,
-        options={
-            "initialView": "dayGridMonth",
-            "selectable": True,
-            "selectMirror": True,
-            "editable": False,
-            "headerToolbar": {
-                "left": "prev,next today",
-                "center": "title",
-                "right": "dayGridMonth,timeGridWeek,timeGridDay",
-            },
-        },
-        key="work_calendar",
-    )
-
-    if calendar_result.get("dateClick"):
-        selected_date = calendar_result["dateClick"]["date"][:10]
-        st.session_state.selected_date = selected_date
-        st.session_state.selected_entry_id = None
-
-    if calendar_result.get("eventClick"):
-        event_id = int(calendar_result["eventClick"]["event"]["id"])
-        st.session_state.selected_entry_id = event_id
-        st.session_state.selected_date = None
-
-    if st.session_state.selected_date is not None:
-        st.subheader(f"Add work entry for {st.session_state.selected_date}")
-
-        start_time = st.time_input("Start time", key="new_start_time")
-        end_time = st.time_input("End time", key="new_end_time")
-
-        if st.button("Save work entry"):
-            create_work_entry(
-                st.session_state.selected_date,
-                start_time.strftime("%H:%M"),
-                end_time.strftime("%H:%M"),
-            )
-
-            st.success("Work entry saved.")
-            st.session_state.selected_date = None
-            st.rerun()
-
-    if st.session_state.selected_entry_id is not None:
-        entry_id = st.session_state.selected_entry_id
-
-        if 0 <= entry_id < len(work_entries):
-            selected_entry = work_entries[entry_id]
-
-            st.subheader("Edit work entry")
-
-            selected_date = st.date_input(
-                "Date",
-                value=datetime.strptime(selected_entry["date"], "%Y-%m-%d").date(),
-                key="edit_date",
-            )
-
-            edit_start_time = st.time_input(
-                "Start time",
-                value=datetime.strptime(selected_entry["start_time"], "%H:%M:%S").time(),
-                key="edit_start_time",
-            )
-
-            edit_end_time = st.time_input(
-                "End time",
-                value=datetime.strptime(selected_entry["end_time"], "%H:%M:%S").time(),
-                key="edit_end_time",
-            )
-
-            if st.button("Save changes"):
-                work_entries[entry_id] = {
-                    "date": str(selected_date),
-                    "start_time": str(edit_start_time),
-                    "end_time": str(edit_end_time),
-                    "total_time": calculate_total_time(edit_start_time, edit_end_time),
-                }
-
-                save_json(WORK_ENTRIES_FILE, work_entries)
-
-                st.success("Work entry updated.")
-                st.session_state.selected_entry_id = None
-                st.rerun()
-
-            if st.button("Delete work entry"):
-                work_entries.pop(entry_id)
-                save_json(WORK_ENTRIES_FILE, work_entries)
-
-                st.success("Work entry deleted.")
-                st.session_state.selected_entry_id = None
-                st.rerun()
+    render_work_entry_page()
 
 
 elif st.session_state.page == "contract":
