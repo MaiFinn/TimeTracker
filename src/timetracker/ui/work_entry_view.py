@@ -1,14 +1,12 @@
 from datetime import datetime, timezone
-from pathlib import Path
 
 import streamlit as st
 from streamlit_calendar import calendar
 
+from timetracker.config.paths import WORK_ENTRIES_FILE
 from timetracker.storage.json_storage import load_json, save_json
 from timetracker.work_entry_handler import create_work_entry
 from timetracker.utils.time_utils import calculate_total_time
-
-WORK_ENTRIES_FILE = Path("artifacts/work_entries.json")
 
 
 def work_entries_to_calendar_events(work_entries: list[dict]) -> list[dict]:

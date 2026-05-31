@@ -1,6 +1,7 @@
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from timetracker.config.paths import CONTRACT_FILE
 from timetracker.storage.json_storage import save_json
 
 
@@ -24,9 +25,7 @@ def create_contract(
     """Create a new contract file."""
 
     if file_path is None:
-        project_root = Path(__file__).resolve().parents[2]
-        artifacts_dir = project_root / "artifacts"
-        file_path = artifacts_dir / "contract.json"
+        file_path = CONTRACT_FILE
 
     contract_details = Contract(
         company_name=company_name,

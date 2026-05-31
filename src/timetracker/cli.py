@@ -2,13 +2,14 @@ from pathlib import Path
 import typer
 import logging
 
+from timetracker.config.paths import CONTRACT_FILE, LOG_FILE, WORK_ENTRIES_FILE
 from timetracker.utils.logger import setup_logger
 from timetracker.work_entry_handler import create_work_entry
 from timetracker.contract_handler import create_contract
 from timetracker.storage.json_storage import load_json
 from timetracker.summary import calculate_work_balance
 
-setup_logger(name="timetracker", log_file="artifacts/logs/timetracker.log")
+setup_logger(name="timetracker", log_file=LOG_FILE)
 logger = logging.getLogger(__name__)
 
 CONTRACT_FILE = Path("artifacts/contract.json")

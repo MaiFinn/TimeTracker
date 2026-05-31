@@ -2,6 +2,49 @@ from calendar import monthrange
 from datetime import date, datetime, timedelta
 
 
+def calculate_total_balance_history(
+    contract: dict,
+    work_entries: list[dict],
+    start_date: date | None = None,
+    end_date: date | None = None,
+) -> dict[str, float]:
+    """Calculate cumulative total balance over time."""
+
+    contract_start_date = datetime.strptime(
+        contract["start_date"],
+        "%Y-%m-%d",
+    ).date()
+
+    if start_date is None:
+        start_date = contract_start_date
+
+    if end_date is None:
+        end_date = date.today()
+
+    balance_history = {}
+
+    current_date = start_date
+
+    while current_date <= end_date:
+        entries_until_date = [
+            entry
+            for entry in work_entries
+            if datetime.strptime(entry["date"], "%Y-%m-%d").date() <= current_date
+        ]
+
+        balance = calculate_work_balance(
+            contract=contract,
+            work_entries=entries_until_date,
+            today=current_date,
+        )
+
+        balance_history[current_date.isoformat()] = balance["balance_hours"]
+
+        current_date += timedelta(days=1)
+
+    return balance_history
+
+
 def calculate_daily_actual_hours(work_entries: list[dict]) -> dict[str, float]:
     """Calculate actual worked hours grouped by date."""
 
