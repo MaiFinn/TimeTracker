@@ -2,6 +2,22 @@ from calendar import monthrange
 from datetime import date, datetime, timedelta
 
 
+def calculate_daily_actual_hours(work_entries: list[dict]) -> dict[str, float]:
+    """Calculate actual worked hours grouped by date."""
+
+    daily_hours = {}
+
+    for entry in work_entries:
+        entry_date = entry["date"]
+        duration_hours = parse_duration(entry["total_time"]).total_seconds() / 3600
+
+        if entry_date not in daily_hours:
+            daily_hours[entry_date] = 0.0
+
+        daily_hours[entry_date] += duration_hours
+
+    return daily_hours
+
 def parse_duration(duration: str) -> timedelta:
     """Parse duration string in H:MM:SS format."""
     hours, minutes, seconds = duration.split(":")

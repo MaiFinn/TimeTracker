@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import streamlit as st
@@ -90,7 +90,10 @@ def render_work_entry_page(
 
     if calendar_result:
         if calendar_result.get("dateClick"):
-            selected_date = calendar_result["dateClick"]["date"][:10]
+            clicked_datetime = datetime.fromisoformat(
+                calendar_result["dateClick"]["date"].replace("Z", "+00:00")
+            )
+            selected_date = clicked_datetime.astimezone().date().isoformat()
             st.session_state.selected_date = selected_date
             st.session_state.selected_entry_id = None
 

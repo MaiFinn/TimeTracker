@@ -1,12 +1,16 @@
 from datetime import date
 from pathlib import Path
-
+import pandas as pd
 import streamlit as st
 
 from timetracker.storage.json_storage import load_json
-from timetracker.summary import calculate_monthly_balance, calculate_work_balance
 from timetracker.ui.contract_view import render_contract_page
 from timetracker.ui.work_entry_view import render_work_entry_page
+from timetracker.summary import (
+    calculate_daily_actual_hours,
+    calculate_monthly_balance,
+    calculate_work_balance,
+)
 
 CONTRACT_FILE = Path("artifacts/contract.json")
 WORK_ENTRIES_FILE = Path("artifacts/work_entries.json")
@@ -116,6 +120,32 @@ if st.session_state.page == "home":
         col1.metric("Actual hours", f"{monthly_balance['actual_hours']:.2f} h")
         col2.metric("Expected hours", f"{monthly_balance['expected_hours']:.2f} h")
         col3.metric("Balance", f"{monthly_balance['balance_hours']:.2f} h")
+
+        balance_value = monthly_balance["balance_hours"]
+
+        if balance_value >= 0:
+            st.success(f"Monthly balance is positive: +{balance_value:.2f} h")
+        else:
+            st.error(f"Monthly balance is negative: {balance_value:.2f} h")
+
+        daily_hours = calculate_daily_actual_hours(work_entries)
+
+        if daily_hours:
+            chart_data = pd.DataFrame(
+                {
+                    "date": list(daily_hours.keys()),
+                    "hours": list(daily_hours.values()),
+                }
+            )
+
+            chart_data["date"] = pd.to_datetime(chart_data["date"])
+            chart_data = chart_data.sort_values("date")
+            chart_data = chart_data.set_index("date")
+
+            st.subheader("Worked hours over time")
+            st.line_chart(chart_data)
+        else:
+            st.info("No work entries available for chart.")
 
     else:
         st.info("Create a contract to see your working time balance.")
