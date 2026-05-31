@@ -1,68 +1,54 @@
-from datetime import datetime, date, time
-from dataclasses import dataclass, asdict
-import json
+from dataclasses import asdict, dataclass
+from datetime import date, datetime, time
 from pathlib import Path
 import logging
+
+from timetracker.storage.json_storage import load_json, save_json
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class workentry:
-    "Container class for work entries."
+class WorkEntry:
+    """Container class for work entries."""
 
     date: str
-    start_time: time
-    end_time: time
-    total_time: float
+    start_time: str
+    end_time: str
+    total_time: str
 
 
 def create_work_entry(
-        working_date: str,
-        start_time: str,
-        end_time: str,
-        file_path: Path | None = None,
-) -> json:
-        
-        """
-        Create a work entry.
+    working_date: str,
+    start_time: str,
+    end_time: str,
+    file_path: Path | None = None,
+) -> None:
+    """Create a work entry."""
 
-        Args:
-            working_date (str): Date of working task
-            start_time (str): Start of working
-            end_time (str): End of working
-        """
-        if file_path is None:
-            PROJECT_ROOT = Path(__file__).resolve().parents[2]
-            ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
-            ARTIFACTS_DIR.mkdir(exist_ok=True)
-            file_path = ARTIFACTS_DIR / "work_entries.json"
-            logger.info(f"Writing work entry file to {file_path}.")
-        
-        parsed_start_time = datetime.strptime(start_time, "%H:%M").time()
-        parsed_end_time = datetime.strptime(end_time, "%H:%M").time()
+    if file_path is None:
+        project_root = Path(__file__).resolve().parents[2]
+        artifacts_dir = project_root / "artifacts"
+        file_path = artifacts_dir / "work_entries.json"
 
-        start_datetime = datetime.combine(date.today(), parsed_start_time)
-        end_datetime = datetime.combine(date.today(), parsed_end_time)
+    logger.info(f"Writing work entry file to {file_path}.")
 
-        duration = end_datetime - start_datetime
+    parsed_start_time = datetime.strptime(start_time, "%H:%M").time()
+    parsed_end_time = datetime.strptime(end_time, "%H:%M").time()
 
-        work_entry = workentry(
-                date=working_date,
-                start_time=str(parsed_start_time),
-                end_time=str(parsed_end_time),
-                total_time=str(duration)
-                )
-        
-        work_entry_dict = asdict(work_entry)
+    start_datetime = datetime.combine(date.today(), parsed_start_time)
+    end_datetime = datetime.combine(date.today(), parsed_end_time)
 
-        if file_path.exists():
-                with open(file_path, "r") as f:
-                        work_entries = json.load(f)
-        else:
-                work_entries = []
+    duration = end_datetime - start_datetime
 
-        work_entries.append(work_entry_dict)
+    work_entry = WorkEntry(
+        date=working_date,
+        start_time=str(parsed_start_time),
+        end_time=str(parsed_end_time),
+        total_time=str(duration),
+    )
 
-        with open(file_path, "w") as f:
-                json.dump(work_entries, f)
+    work_entries = load_json(file_path, default=[])
+    work_entries.append(asdict(work_entry))
+
+    save_json(file_path, work_entries)
