@@ -1,16 +1,36 @@
+from datetime import date
 from pathlib import Path
 
 import streamlit as st
 
 from timetracker.storage.json_storage import load_json
-from timetracker.summary import calculate_work_balance
+from timetracker.summary import calculate_monthly_balance, calculate_work_balance
 from timetracker.ui.contract_view import render_contract_page
 from timetracker.ui.work_entry_view import render_work_entry_page
 
 CONTRACT_FILE = Path("artifacts/contract.json")
 WORK_ENTRIES_FILE = Path("artifacts/work_entries.json")
 
+MONTHS = {
+    "January": 1,
+    "February": 2,
+    "March": 3,
+    "April": 4,
+    "May": 5,
+    "June": 6,
+    "July": 7,
+    "August": 8,
+    "September": 9,
+    "October": 10,
+    "November": 11,
+    "December": 12,
+}
+
+MONTH_NAMES = list(MONTHS.keys())
+
 st.title("TimeTracker")
+
+today = date.today()
 
 if "page" not in st.session_state:
     st.session_state.page = "home"
@@ -20,6 +40,12 @@ if "selected_date" not in st.session_state:
 
 if "selected_entry_id" not in st.session_state:
     st.session_state.selected_entry_id = None
+
+if "active_year" not in st.session_state:
+    st.session_state.active_year = today.year
+
+if "active_month" not in st.session_state:
+    st.session_state.active_month = today.month
 
 
 contract = load_json(CONTRACT_FILE, default=None)
@@ -36,19 +62,70 @@ if st.session_state.page == "home":
     st.divider()
 
     if contract is not None:
-        balance = calculate_work_balance(contract, work_entries)
+        selected_year = st.number_input(
+            "Year",
+            min_value=2000,
+            max_value=2100,
+            value=int(st.session_state.active_year),
+            step=1,
+            key=f"year_selector_{st.session_state.active_year}_{st.session_state.active_month}",
+        )
+
+        selected_month_name = st.selectbox(
+            "Month",
+            options=MONTH_NAMES,
+            index=int(st.session_state.active_month) - 1,
+            key=f"month_selector_{st.session_state.active_year}_{st.session_state.active_month}",
+        )
+
+        selected_month = MONTHS[selected_month_name]
+
+        if (
+            int(selected_year) != st.session_state.active_year
+            or selected_month != st.session_state.active_month
+        ):
+            st.session_state.active_year = int(selected_year)
+            st.session_state.active_month = selected_month
+            st.session_state.selected_date = None
+            st.session_state.selected_entry_id = None
+            st.rerun()
+
+        total_balance = calculate_work_balance(contract, work_entries)
+
+        monthly_balance = calculate_monthly_balance(
+            contract,
+            work_entries,
+            year=int(st.session_state.active_year),
+            month=int(st.session_state.active_month),
+        )
+
+        active_month_name = MONTH_NAMES[int(st.session_state.active_month) - 1]
+
+        st.subheader("Total balance")
 
         col1, col2, col3 = st.columns(3)
+        col1.metric("Actual hours", f"{total_balance['actual_hours']:.2f} h")
+        col2.metric("Expected hours", f"{total_balance['expected_hours']:.2f} h")
+        col3.metric("Balance", f"{total_balance['balance_hours']:.2f} h")
 
-        col1.metric("Actual hours", f"{balance['actual_hours']:.2f} h")
-        col2.metric("Expected hours", f"{balance['expected_hours']:.2f} h")
-        col3.metric("Balance", f"{balance['balance_hours']:.2f} h")
+        st.subheader(
+            f"Monthly balance: {active_month_name} {int(st.session_state.active_year)}"
+        )
+
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Actual hours", f"{monthly_balance['actual_hours']:.2f} h")
+        col2.metric("Expected hours", f"{monthly_balance['expected_hours']:.2f} h")
+        col3.metric("Balance", f"{monthly_balance['balance_hours']:.2f} h")
+
     else:
         st.info("Create a contract to see your working time balance.")
 
     st.divider()
 
-    render_work_entry_page()
+    render_work_entry_page(
+        selected_year=int(st.session_state.active_year),
+        selected_month=int(st.session_state.active_month),
+    )
 
 
 elif st.session_state.page == "contract":

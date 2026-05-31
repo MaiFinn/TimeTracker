@@ -39,7 +39,10 @@ def work_entries_to_calendar_events(work_entries: list[dict]) -> list[dict]:
     return events
 
 
-def render_work_entry_page() -> None:
+def render_work_entry_page(
+    selected_year: int,
+    selected_month: int,
+) -> None:
     """Render the work entry calendar page."""
 
     st.subheader("Work calendar")
@@ -47,31 +50,67 @@ def render_work_entry_page() -> None:
     work_entries = load_json(WORK_ENTRIES_FILE, default=[])
     calendar_events = work_entries_to_calendar_events(work_entries)
 
+    initial_date = f"{selected_year}-{selected_month:02d}-01"
+
+    col1, col2, col3 = st.columns(3)
+
+    if col1.button("← Previous month"):
+        if st.session_state.active_month == 1:
+            st.session_state.active_month = 12
+            st.session_state.active_year -= 1
+        else:
+            st.session_state.active_month -= 1
+        st.rerun()
+
+    if col2.button("Today"):
+        today = datetime.today()
+        st.session_state.active_year = today.year
+        st.session_state.active_month = today.month
+        st.rerun()
+
+    if col3.button("Next month →"):
+        if st.session_state.active_month == 12:
+            st.session_state.active_month = 1
+            st.session_state.active_year += 1
+        else:
+            st.session_state.active_month += 1
+        st.rerun()
+
     calendar_result = calendar(
         events=calendar_events,
         options={
             "initialView": "dayGridMonth",
+            "initialDate": initial_date,
             "selectable": True,
             "selectMirror": True,
             "editable": False,
             "headerToolbar": {
-                "left": "prev,next today",
+                "left": "",
                 "center": "title",
                 "right": "dayGridMonth,timeGridWeek,timeGridDay",
             },
         },
-        key="work_calendar",
+        callbacks=[
+            "dateClick",
+            "eventClick",
+            "datesSet",
+        ],
+        key=f"work_calendar_{selected_year}_{selected_month}",
     )
 
-    if calendar_result.get("dateClick"):
-        selected_date = calendar_result["dateClick"]["date"][:10]
-        st.session_state.selected_date = selected_date
-        st.session_state.selected_entry_id = None
+    if calendar_result:
+        if calendar_result.get("dateClick"):
+            selected_date = calendar_result["dateClick"]["date"][:10]
+            st.session_state.selected_date = selected_date
+            st.session_state.selected_entry_id = None
 
-    if calendar_result.get("eventClick"):
-        event_id = int(calendar_result["eventClick"]["event"]["id"])
-        st.session_state.selected_entry_id = event_id
-        st.session_state.selected_date = None
+        if calendar_result.get("eventClick"):
+            event_id = int(calendar_result["eventClick"]["event"]["id"])
+            st.session_state.selected_entry_id = event_id
+            st.session_state.selected_date = None
+
+        if calendar_result.get("datesSet") or calendar_result.get("callback") == "datesSet":
+            _sync_balance_month_with_calendar(calendar_result)
 
     if st.session_state.selected_date is not None:
         _render_add_work_entry_form(st.session_state.selected_date)
@@ -81,6 +120,34 @@ def render_work_entry_page() -> None:
 
         if 0 <= entry_id < len(work_entries):
             _render_edit_work_entry_form(work_entries, entry_id)
+
+
+def _sync_balance_month_with_calendar(calendar_result: dict) -> None:
+    """Synchronize selected balance month with the current calendar month."""
+
+    dates_set = calendar_result.get("datesSet", {})
+    view = dates_set.get("view", {})
+
+    current_start = (
+        view.get("currentStart")
+        or dates_set.get("startStr")
+        or dates_set.get("start")
+    )
+
+    if current_start is None:
+        return
+
+    current_date = datetime.fromisoformat(current_start[:10]).date()
+
+    if (
+        current_date.year != st.session_state.active_year
+        or current_date.month != st.session_state.active_month
+    ):
+        st.session_state.active_year = current_date.year
+        st.session_state.active_month = current_date.month
+        st.session_state.selected_date = None
+        st.session_state.selected_entry_id = None
+        st.rerun()
 
 
 def _render_add_work_entry_form(selected_date: str) -> None:
