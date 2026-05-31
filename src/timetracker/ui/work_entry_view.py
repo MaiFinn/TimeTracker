@@ -149,15 +149,19 @@ def _render_add_work_entry_form(selected_date: str) -> None:
     end_time = st.time_input("End time", key="new_end_time")
 
     if st.button("Save work entry"):
-        create_work_entry(
-            selected_date,
-            start_time.strftime("%H:%M"),
-            end_time.strftime("%H:%M"),
-        )
+        try:
+            create_work_entry(
+                selected_date,
+                start_time.strftime("%H:%M"),
+                end_time.strftime("%H:%M"),
+            )
 
-        st.success("Work entry saved.")
-        st.session_state.selected_date = None
-        st.rerun()
+            st.success("Work entry saved.")
+            st.session_state.selected_date = None
+            st.rerun()
+
+        except ValueError as error:
+            st.error(str(error))
 
 
 def _render_edit_work_entry_form(work_entries: list[dict], entry_id: int) -> None:
@@ -186,18 +190,22 @@ def _render_edit_work_entry_form(work_entries: list[dict], entry_id: int) -> Non
     )
 
     if st.button("Save changes"):
-        work_entries[entry_id] = {
-            "date": str(selected_date),
-            "start_time": str(edit_start_time),
-            "end_time": str(edit_end_time),
-            "total_time": calculate_total_time(edit_start_time, edit_end_time),
-        }
+        try:
+            work_entries[entry_id] = {
+                "date": str(selected_date),
+                "start_time": str(edit_start_time),
+                "end_time": str(edit_end_time),
+                "total_time": calculate_total_time(edit_start_time, edit_end_time),
+            }
 
-        save_json(WORK_ENTRIES_FILE, work_entries)
+            save_json(WORK_ENTRIES_FILE, work_entries)
 
-        st.success("Work entry updated.")
-        st.session_state.selected_entry_id = None
-        st.rerun()
+            st.success("Work entry updated.")
+            st.session_state.selected_entry_id = None
+            st.rerun()
+
+        except ValueError as error:
+            st.error(str(error))
 
     if st.button("Delete work entry"):
         work_entries.pop(entry_id)
