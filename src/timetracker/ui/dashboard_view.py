@@ -2,6 +2,7 @@ from datetime import date
 
 import pandas as pd
 import streamlit as st
+import plotly.graph_objects as go
 from timetracker.reports.monthly_report import build_monthly_report_rows, build_total_report_row
 
 from timetracker.summary import (
@@ -188,8 +189,6 @@ def _render_total_balance_chart(
     included_statuses: list[str],
 ) -> None:
     """Render total balance history chart."""
-
-    import plotly.graph_objects as go
 
     contract_start_date = pd.to_datetime(contract["start_date"]).date()
     today = date.today()
