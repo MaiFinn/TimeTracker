@@ -56,7 +56,7 @@ work_entries = load_json(WORK_ENTRIES_FILE, default=[])
 if st.session_state.page == "home":
     button_label = "+ Create new contract" if contract is None else "Adapt contract"
 
-    col1, col2 = st.columns(2)
+    col1, spacer, col2 = st.columns([2, 3, 2])
 
     with col1:
         if st.button(button_label):

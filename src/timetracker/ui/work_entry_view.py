@@ -14,7 +14,6 @@ ENTRY_STATUS_OPTIONS = {
     "Cancelled by employer": "cancelled_by_employer",
 }
 
-
 ENTRY_STATUS_COLORS = {
     "worked": "#2E7D32",
     "cancelled_by_employer": "#1565C0",
@@ -48,13 +47,46 @@ def render_work_entry_page(
     selected_year: int,
     selected_month: int,
 ) -> None:
-    """Render the work entry calendar page."""
+    """Render the work entry page."""
 
-    st.subheader("Work calendar")
+    view_mode = st.radio(
+        "Work entry view",
+        options=["Calendar", "List"],
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+
+    st.subheader("Work calendar" if view_mode == "Calendar" else "Work entry list")
 
     work_entries = load_json(WORK_ENTRIES_FILE, default=[])
-    calendar_events = work_entries_to_calendar_events(work_entries)
 
+    if view_mode == "Calendar":
+        _render_calendar_view(
+            work_entries=work_entries,
+            selected_year=selected_year,
+            selected_month=selected_month,
+        )
+    else:
+        _render_work_entry_list(work_entries)
+
+    if st.session_state.selected_date is not None:
+        _render_add_work_entry_form(st.session_state.selected_date)
+
+    if st.session_state.selected_entry_id is not None:
+        entry_id = st.session_state.selected_entry_id
+
+        if 0 <= entry_id < len(work_entries):
+            _render_edit_work_entry_form(work_entries, entry_id)
+
+
+def _render_calendar_view(
+    work_entries: list[dict],
+    selected_year: int,
+    selected_month: int,
+) -> None:
+    """Render work entries as calendar."""
+
+    calendar_events = work_entries_to_calendar_events(work_entries)
     initial_date = f"{selected_year}-{selected_month:02d}-01"
 
     col1, col2, col3 = st.columns(3)
@@ -110,38 +142,77 @@ def render_work_entry_page(
         key=f"work_calendar_{selected_year}_{selected_month}",
     )
 
-    if calendar_result:
-        if calendar_result.get("dateClick"):
-            if st.session_state.get("ignore_next_calendar_click", False):
-                st.session_state.ignore_next_calendar_click = False
-            else:
-                clicked_datetime = datetime.fromisoformat(
-                    calendar_result["dateClick"]["date"].replace("Z", "+00:00")
-                )
-                selected_date = clicked_datetime.astimezone().date().isoformat()
-                st.session_state.selected_date = selected_date
-                st.session_state.selected_entry_id = None
+    if not calendar_result:
+        return
 
-        if calendar_result.get("eventClick"):
-            if st.session_state.get("ignore_next_calendar_click", False):
-                st.session_state.ignore_next_calendar_click = False
-            else:
-                st.session_state.selected_entry_id = int(
-                    calendar_result["eventClick"]["event"]["id"]
-                )
-                st.session_state.selected_date = None
+    if calendar_result.get("dateClick"):
+        if st.session_state.get("ignore_next_calendar_click", False):
+            st.session_state.ignore_next_calendar_click = False
+        else:
+            clicked_datetime = datetime.fromisoformat(
+                calendar_result["dateClick"]["date"].replace("Z", "+00:00")
+            )
+            selected_date = clicked_datetime.astimezone().date().isoformat()
+            st.session_state.selected_date = selected_date
+            st.session_state.selected_entry_id = None
 
-        if calendar_result.get("datesSet") or calendar_result.get("callback") == "datesSet":
-            _sync_balance_month_with_calendar(calendar_result)
+    if calendar_result.get("eventClick"):
+        if st.session_state.get("ignore_next_calendar_click", False):
+            st.session_state.ignore_next_calendar_click = False
+        else:
+            st.session_state.selected_entry_id = int(
+                calendar_result["eventClick"]["event"]["id"]
+            )
+            st.session_state.selected_date = None
 
-    if st.session_state.selected_date is not None:
-        _render_add_work_entry_form(st.session_state.selected_date)
+    if calendar_result.get("datesSet") or calendar_result.get("callback") == "datesSet":
+        _sync_balance_month_with_calendar(calendar_result)
 
-    if st.session_state.selected_entry_id is not None:
-        entry_id = st.session_state.selected_entry_id
 
-        if 0 <= entry_id < len(work_entries):
-            _render_edit_work_entry_form(work_entries, entry_id)
+def _render_work_entry_list(work_entries: list[dict]) -> None:
+    """Render work entries as a list."""
+    
+    if st.button("+ Add work entry", key="add_entry_list"):
+        st.session_state.selected_date = datetime.today().date().isoformat()
+        st.session_state.selected_entry_id = None
+        st.rerun()
+
+    if not work_entries:
+        st.info("No work entries yet.")
+        return
+
+    for index, entry in enumerate(work_entries):
+        col1, col2, col3, col4, col5, col6 = st.columns([2, 2, 2, 2, 3, 2])
+
+        col1.write(entry["date"])
+        col2.write(entry["start_time"])
+        col3.write(entry["end_time"])
+        col4.write(entry["total_time"])
+        col5.markdown(
+            _render_status_badge(entry.get("entry_status", "worked")),
+            unsafe_allow_html=True,
+        )
+
+        if col6.button(
+            "Edit",
+            key=f"edit_entry_list_{index}",
+            use_container_width=True,
+        ):
+            st.session_state.selected_entry_id = index
+            st.session_state.selected_date = None
+            st.rerun()
+
+
+def _render_status_badge(status_value: str) -> str:
+    """Render status with colored dot."""
+
+    status_label = _get_status_label(status_value)
+    status_color = ENTRY_STATUS_COLORS.get(status_value, "#2E7D32")
+
+    return (
+        f"<span style='color:{status_color}; font-size:18px;'>●</span> "
+        f"{status_label}"
+    )
 
 
 def _clear_work_entry_selection() -> None:
@@ -286,4 +357,5 @@ def _render_edit_work_entry_form(work_entries: list[dict], entry_id: int) -> Non
 
         st.success("Work entry deleted.")
         _clear_work_entry_selection()
+        st.session_state.ignore_next_calendar_click = True
         st.rerun()

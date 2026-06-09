@@ -28,10 +28,21 @@ def render_dashboard(
         st.info("Create a contract to see your working time balance.")
         return
 
+    st.subheader("Working time balance")
+
     included_statuses = _render_status_filter()
 
-    _render_total_balance(contract, work_entries, included_statuses)
-    _render_total_balance_chart(contract, work_entries, included_statuses)
+    _render_total_balance(
+        contract,
+        work_entries,
+        included_statuses,
+    )
+
+    _render_total_balance_chart(
+        contract,
+        work_entries,
+        included_statuses,
+    )
 
     st.divider()
 
@@ -42,7 +53,7 @@ def render_dashboard(
 def _render_status_filter() -> list[str]:
     """Render status filter and return included entry statuses."""
 
-    st.subheader("Included entry types")
+    #st.subheader("Included entry types")
 
     col1, col2, col3 = st.columns(3)
 
@@ -128,7 +139,7 @@ def _render_total_balance(
         included_statuses=included_statuses,
     )
 
-    st.subheader("Total balance")
+    st.subheader("Working time balance")
 
     col1, col2, col3 = st.columns(3)
     col1.metric("Actual hours", f"{total_balance['actual_hours']:.2f} h")
@@ -181,17 +192,23 @@ def _render_total_balance_chart(
     contract_start_date = pd.to_datetime(contract["start_date"]).date()
     today = date.today()
 
-    st.subheader("Total balance over time")
+    #st.subheader("Total balance over time")
 
-    chart_start_date = st.date_input(
-        "Chart start date",
-        value=contract_start_date,
-    )
+    #st.caption("Displayed balance period")
 
-    chart_end_date = st.date_input(
-        "Chart end date",
-        value=today,
-    )
+    col1, col2 = st.columns(2)
+
+    with col1:
+        chart_start_date = st.date_input(
+            "From",
+            value=contract_start_date,
+        )
+
+    with col2:
+        chart_end_date = st.date_input(
+            "To",
+            value=today,
+        )
 
     balance_history = calculate_total_balance_history(
         contract,
