@@ -1,7 +1,13 @@
 from datetime import date
+
+import pandas as pd
 import streamlit as st
 
 from timetracker.config.paths import CONTRACT_FILE, WORK_ENTRIES_FILE
+from timetracker.reports.monthly_report import (
+    build_monthly_report_rows,
+    build_total_report_row,
+)
 from timetracker.storage.json_storage import load_json
 from timetracker.ui.contract_view import render_contract_page
 from timetracker.ui.dashboard_view import render_dashboard
@@ -50,9 +56,27 @@ work_entries = load_json(WORK_ENTRIES_FILE, default=[])
 if st.session_state.page == "home":
     button_label = "+ Create new contract" if contract is None else "Adapt contract"
 
-    if st.button(button_label):
-        st.session_state.page = "contract"
-        st.rerun()
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button(button_label):
+            st.session_state.page = "contract"
+            st.rerun()
+
+    with col2:
+        if contract is not None:
+            rows = build_monthly_report_rows(contract, work_entries)
+            rows.append(build_total_report_row(contract, work_entries))
+
+            report_data = pd.DataFrame(rows)
+            csv_data = report_data.to_csv(index=False).encode("utf-8")
+
+            st.download_button(
+                label="Download report",
+                data=csv_data,
+                file_name="timetracker_report.csv",
+                mime="text/csv",
+            )
 
     st.divider()
 

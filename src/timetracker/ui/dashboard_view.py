@@ -2,6 +2,7 @@ from datetime import date
 
 import pandas as pd
 import streamlit as st
+from timetracker.reports.monthly_report import build_monthly_report_rows, build_total_report_row
 
 from timetracker.summary import (
     calculate_monthly_balance,
@@ -216,3 +217,22 @@ def _render_total_balance_chart(
     balance_chart_data = balance_chart_data.set_index("date")
 
     st.line_chart(balance_chart_data)
+
+def _render_report_export(
+    contract: dict,
+    work_entries: list[dict],
+) -> None:
+    """Render report export button."""
+
+    rows = build_monthly_report_rows(contract, work_entries)
+    rows.append(build_total_report_row(contract, work_entries))
+
+    report_data = pd.DataFrame(rows)
+    csv_data = report_data.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="Download full report CSV",
+        data=csv_data,
+        file_name="timetracker_report.csv",
+        mime="text/csv",
+    )

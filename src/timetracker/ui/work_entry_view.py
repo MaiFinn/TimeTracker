@@ -65,12 +65,16 @@ def render_work_entry_page(
             st.session_state.active_year -= 1
         else:
             st.session_state.active_month -= 1
+
+        _clear_work_entry_selection()
         st.rerun()
 
     if col2.button("Today"):
         today = datetime.today()
         st.session_state.active_year = today.year
         st.session_state.active_month = today.month
+
+        _clear_work_entry_selection()
         st.rerun()
 
     if col3.button("Next month →"):
@@ -79,6 +83,8 @@ def render_work_entry_page(
             st.session_state.active_year += 1
         else:
             st.session_state.active_month += 1
+
+        _clear_work_entry_selection()
         st.rerun()
 
     calendar_result = calendar(
@@ -106,17 +112,24 @@ def render_work_entry_page(
 
     if calendar_result:
         if calendar_result.get("dateClick"):
-            clicked_datetime = datetime.fromisoformat(
-                calendar_result["dateClick"]["date"].replace("Z", "+00:00")
-            )
-            selected_date = clicked_datetime.astimezone().date().isoformat()
-            st.session_state.selected_date = selected_date
-            st.session_state.selected_entry_id = None
+            if st.session_state.get("ignore_next_calendar_click", False):
+                st.session_state.ignore_next_calendar_click = False
+            else:
+                clicked_datetime = datetime.fromisoformat(
+                    calendar_result["dateClick"]["date"].replace("Z", "+00:00")
+                )
+                selected_date = clicked_datetime.astimezone().date().isoformat()
+                st.session_state.selected_date = selected_date
+                st.session_state.selected_entry_id = None
 
         if calendar_result.get("eventClick"):
-            event_id = int(calendar_result["eventClick"]["event"]["id"])
-            st.session_state.selected_entry_id = event_id
-            st.session_state.selected_date = None
+            if st.session_state.get("ignore_next_calendar_click", False):
+                st.session_state.ignore_next_calendar_click = False
+            else:
+                st.session_state.selected_entry_id = int(
+                    calendar_result["eventClick"]["event"]["id"]
+                )
+                st.session_state.selected_date = None
 
         if calendar_result.get("datesSet") or calendar_result.get("callback") == "datesSet":
             _sync_balance_month_with_calendar(calendar_result)
@@ -129,6 +142,13 @@ def render_work_entry_page(
 
         if 0 <= entry_id < len(work_entries):
             _render_edit_work_entry_form(work_entries, entry_id)
+
+
+def _clear_work_entry_selection() -> None:
+    """Clear selected work entry state."""
+
+    st.session_state.selected_date = None
+    st.session_state.selected_entry_id = None
 
 
 def _sync_balance_month_with_calendar(calendar_result: dict) -> None:
@@ -154,8 +174,7 @@ def _sync_balance_month_with_calendar(calendar_result: dict) -> None:
     ):
         st.session_state.active_year = current_date.year
         st.session_state.active_month = current_date.month
-        st.session_state.selected_date = None
-        st.session_state.selected_entry_id = None
+        _clear_work_entry_selection()
         st.rerun()
 
 
@@ -196,7 +215,8 @@ def _render_add_work_entry_form(selected_date: str) -> None:
             )
 
             st.success("Work entry saved.")
-            st.session_state.selected_date = None
+            _clear_work_entry_selection()
+            st.session_state.ignore_next_calendar_click = True
             st.rerun()
 
         except ValueError as error:
@@ -253,7 +273,8 @@ def _render_edit_work_entry_form(work_entries: list[dict], entry_id: int) -> Non
             save_json(WORK_ENTRIES_FILE, work_entries)
 
             st.success("Work entry updated.")
-            st.session_state.selected_entry_id = None
+            _clear_work_entry_selection()
+            st.session_state.ignore_next_calendar_click = True
             st.rerun()
 
         except ValueError as error:
@@ -264,5 +285,5 @@ def _render_edit_work_entry_form(work_entries: list[dict], entry_id: int) -> Non
         save_json(WORK_ENTRIES_FILE, work_entries)
 
         st.success("Work entry deleted.")
-        st.session_state.selected_entry_id = None
+        _clear_work_entry_selection()
         st.rerun()
