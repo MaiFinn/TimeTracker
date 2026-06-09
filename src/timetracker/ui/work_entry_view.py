@@ -1,12 +1,18 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
 import streamlit as st
 from streamlit_calendar import calendar
 
 from timetracker.config.paths import WORK_ENTRIES_FILE
 from timetracker.storage.json_storage import load_json, save_json
-from timetracker.work_entry_handler import create_work_entry
 from timetracker.utils.time_utils import calculate_total_time
+from timetracker.work_entry_handler import create_work_entry
+
+ENTRY_STATUS_OPTIONS = {
+    "Worked": "worked",
+    "Cancelled by employee": "cancelled_by_employee",
+    "Cancelled by employer": "cancelled_by_employer",
+}
 
 
 def work_entries_to_calendar_events(work_entries: list[dict]) -> list[dict]:
@@ -142,6 +148,16 @@ def _sync_balance_month_with_calendar(calendar_result: dict) -> None:
         st.rerun()
 
 
+def _get_status_label(status_value: str) -> str:
+    """Get UI label for an entry status value."""
+
+    for label, value in ENTRY_STATUS_OPTIONS.items():
+        if value == status_value:
+            return label
+
+    return "Worked"
+
+
 def _render_add_work_entry_form(selected_date: str) -> None:
     """Render form to add a new work entry."""
 
@@ -150,12 +166,22 @@ def _render_add_work_entry_form(selected_date: str) -> None:
     start_time = st.time_input("Start time", key="new_start_time")
     end_time = st.time_input("End time", key="new_end_time")
 
+    entry_status_label = st.selectbox(
+        "Entry status",
+        options=list(ENTRY_STATUS_OPTIONS.keys()),
+        index=0,
+        key="new_entry_status",
+    )
+
+    entry_status = ENTRY_STATUS_OPTIONS[entry_status_label]
+
     if st.button("Save work entry"):
         try:
             create_work_entry(
                 selected_date,
                 start_time.strftime("%H:%M"),
                 end_time.strftime("%H:%M"),
+                entry_status=entry_status,
             )
 
             st.success("Work entry saved.")
@@ -191,6 +217,18 @@ def _render_edit_work_entry_form(work_entries: list[dict], entry_id: int) -> Non
         key="edit_end_time",
     )
 
+    current_status = selected_entry.get("entry_status", "worked")
+    current_status_label = _get_status_label(current_status)
+
+    edit_entry_status_label = st.selectbox(
+        "Entry status",
+        options=list(ENTRY_STATUS_OPTIONS.keys()),
+        index=list(ENTRY_STATUS_OPTIONS.keys()).index(current_status_label),
+        key="edit_entry_status",
+    )
+
+    edit_entry_status = ENTRY_STATUS_OPTIONS[edit_entry_status_label]
+
     if st.button("Save changes"):
         try:
             work_entries[entry_id] = {
@@ -198,6 +236,7 @@ def _render_edit_work_entry_form(work_entries: list[dict], entry_id: int) -> Non
                 "start_time": str(edit_start_time),
                 "end_time": str(edit_end_time),
                 "total_time": calculate_total_time(edit_start_time, edit_end_time),
+                "entry_status": edit_entry_status,
             }
 
             save_json(WORK_ENTRIES_FILE, work_entries)

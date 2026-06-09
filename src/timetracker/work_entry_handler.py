@@ -18,12 +18,14 @@ class WorkEntry:
     start_time: str
     end_time: str
     total_time: str
+    entry_status: str
 
 
 def create_work_entry(
     working_date: str,
     start_time: str,
     end_time: str,
+    entry_status: str = "worked",
     file_path: Path | None = None,
 ) -> None:
     """Create a work entry."""
@@ -44,6 +46,7 @@ def create_work_entry(
         start_time=str(parsed_start_time),
         end_time=str(parsed_end_time),
         total_time=duration,
+        entry_status=entry_status,
     )
 
     work_entries = load_json(file_path, default=[])
