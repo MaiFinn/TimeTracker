@@ -189,6 +189,8 @@ def _render_total_balance_chart(
 ) -> None:
     """Render total balance history chart."""
 
+    import plotly.graph_objects as go
+
     contract_start_date = pd.to_datetime(contract["start_date"]).date()
     today = date.today()
 
@@ -233,7 +235,122 @@ def _render_total_balance_chart(
     balance_chart_data = balance_chart_data.sort_values("date")
     balance_chart_data = balance_chart_data.set_index("date")
 
-    st.line_chart(balance_chart_data)
+    work_entry_markers = []
+
+    for entry in work_entries:
+        entry_date = pd.to_datetime(entry["date"])
+
+        if entry_date < pd.to_datetime(chart_start_date) or entry_date > pd.to_datetime(chart_end_date):
+            continue
+
+        if entry_date not in balance_chart_data.index:
+            continue
+
+        status = entry.get("entry_status", "worked")
+
+        if status not in included_statuses:
+            continue
+
+        work_entry_markers.append(
+            {
+                "date": entry_date,
+                "balance": balance_chart_data.loc[entry_date, "balance"],
+                "status": status,
+                "total_time": entry["total_time"],
+            }
+        )
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=balance_chart_data.index,
+            y=balance_chart_data["balance"],
+            mode="lines",
+            name="Balance",
+            line=dict(width=3),
+        )
+    )
+
+    fig.add_hline(
+        y=0,
+        line_width=4,
+        line_color="black",
+    )
+
+    positive = balance_chart_data["balance"].clip(lower=0)
+    negative = balance_chart_data["balance"].clip(upper=0)
+
+    fig.add_trace(
+        go.Scatter(
+            x=balance_chart_data.index,
+            y=positive,
+            fill="tozeroy",
+            fillcolor="rgba(0,180,0,0.15)",
+            line=dict(color="rgba(0,0,0,0)"),
+            showlegend=False,
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=balance_chart_data.index,
+            y=negative,
+            fill="tozeroy",
+            fillcolor="rgba(220,0,0,0.15)",
+            line=dict(color="rgba(0,0,0,0)"),
+            showlegend=False,
+        )
+    )
+
+    fig.update_layout(
+        height=450,
+        margin=dict(l=0, r=0, t=20, b=0),
+    )
+
+    if work_entry_markers:
+        marker_data = pd.DataFrame(work_entry_markers)
+
+        marker_symbols = {
+            "worked": "diamond",
+            "cancelled_by_employer": "circle",
+            "cancelled_by_employee": "x",
+        }
+
+        marker_colors = {
+            "worked": "#2E7D32",
+            "cancelled_by_employer": "#1565C0",
+            "cancelled_by_employee": "#C62828",
+        }
+
+        for status, group in marker_data.groupby("status"):
+            fig.add_trace(
+                go.Scatter(
+                    x=group["date"],
+                    y=group["balance"],
+                    mode="markers",
+                    name=status.replace("_", " "),
+                    marker=dict(
+                        size=13,
+                        symbol=marker_symbols.get(status, "circle"),
+                        color=marker_colors.get(status, "#2E7D32"),
+                        line=dict(width=1, color="white"),
+                    ),
+                    hovertemplate=(
+                        "<b>%{x|%Y-%m-%d}</b><br>"
+                        "Status: " + status.replace("_", " ") + "<br>"
+                        "Duration: %{customdata}<br>"
+                        "Balance: %{y:.2f} h"
+                        "<extra></extra>"
+                    ),
+                    customdata=group["total_time"],
+                )
+            )
+
+    st.plotly_chart(
+        fig,
+        width="stretch",
+    )
 
 def _render_report_export(
     contract: dict,

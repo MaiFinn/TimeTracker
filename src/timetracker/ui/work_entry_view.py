@@ -196,7 +196,7 @@ def _render_work_entry_list(work_entries: list[dict]) -> None:
         if col6.button(
             "Edit",
             key=f"edit_entry_list_{index}",
-            use_container_width=True,
+            width="stretch",
         ):
             st.session_state.selected_entry_id = index
             st.session_state.selected_date = None
