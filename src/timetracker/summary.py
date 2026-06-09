@@ -7,6 +7,7 @@ def calculate_total_balance_history(
     work_entries: list[dict],
     start_date: date | None = None,
     end_date: date | None = None,
+    included_statuses: list[str] | None = None,
 ) -> dict[str, float]:
     """Calculate cumulative total balance over time."""
 
@@ -36,6 +37,7 @@ def calculate_total_balance_history(
             contract=contract,
             work_entries=entries_until_date,
             today=current_date,
+            included_statuses=included_statuses,
         )
 
         balance_history[current_date.isoformat()] = balance["balance_hours"]
@@ -89,8 +91,18 @@ def filter_work_entries_by_month(
     return filtered_entries
 
 
-def calculate_actual_hours(work_entries: list[dict]) -> float:
+def calculate_actual_hours(
+    work_entries: list[dict],
+    included_statuses: list[str] | None = None,
+) -> float:
     """Calculate actual worked hours."""
+
+    if included_statuses is not None:
+        work_entries = filter_work_entries_by_status(
+            work_entries,
+            included_statuses,
+        )
+
     total_duration = timedelta()
 
     for entry in work_entries:
@@ -117,9 +129,15 @@ def calculate_work_balance(
     contract: dict,
     work_entries: list[dict],
     today: date | None = None,
+    included_statuses: list[str] | None = None,
 ) -> dict:
     """Calculate work balance."""
-    actual_hours = calculate_actual_hours(work_entries)
+
+    actual_hours = calculate_actual_hours(
+        work_entries,
+        included_statuses=included_statuses,
+    )
+
     expected_hours = calculate_expected_hours(contract, today)
 
     return {
@@ -158,15 +176,21 @@ def calculate_monthly_balance(
     work_entries: list[dict],
     year: int,
     month: int,
+    included_statuses: list[str] | None = None,
 ) -> dict:
     """Calculate balance for a specific month."""
+
     filtered_entries = filter_work_entries_by_month(
         work_entries,
         year,
         month,
     )
 
-    actual_hours = calculate_actual_hours(filtered_entries)
+    actual_hours = calculate_actual_hours(
+        filtered_entries,
+        included_statuses=included_statuses,
+    )
+
     expected_hours = calculate_monthly_expected_hours(contract, year, month)
 
     return {
@@ -174,3 +198,15 @@ def calculate_monthly_balance(
         "expected_hours": expected_hours,
         "balance_hours": actual_hours - expected_hours,
     }
+
+def filter_work_entries_by_status(
+    work_entries: list[dict],
+    included_statuses: list[str],
+) -> list[dict]:
+    """Filter work entries by entry status."""
+
+    return [
+        entry
+        for entry in work_entries
+        if entry.get("entry_status", "worked") in included_statuses
+    ]

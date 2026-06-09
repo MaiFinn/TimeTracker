@@ -8,6 +8,7 @@ from timetracker.summary import (
     calculate_work_balance,
     filter_work_entries_by_month,
     parse_duration,
+    filter_work_entries_by_status,
 )
 
 
@@ -140,3 +141,33 @@ def test_calculate_monthly_balance():
     assert balance["actual_hours"] == 3.0
     assert balance["expected_hours"] == 31.0
     assert balance["balance_hours"] == -28.0
+    
+
+def test_filter_work_entries_by_status():
+    work_entries = [
+        {"entry_status": "worked", "total_time": "2:00:00"},
+        {"entry_status": "cancelled_by_employer", "total_time": "1:00:00"},
+        {"entry_status": "cancelled_by_employee", "total_time": "3:00:00"},
+    ]
+
+    filtered_entries = filter_work_entries_by_status(
+        work_entries,
+        included_statuses=["worked", "cancelled_by_employer"],
+    )
+
+    assert len(filtered_entries) == 2
+
+
+def test_calculate_actual_hours_with_included_statuses():
+    work_entries = [
+        {"entry_status": "worked", "total_time": "2:00:00"},
+        {"entry_status": "cancelled_by_employer", "total_time": "1:00:00"},
+        {"entry_status": "cancelled_by_employee", "total_time": "3:00:00"},
+    ]
+
+    actual_hours = calculate_actual_hours(
+        work_entries,
+        included_statuses=["worked", "cancelled_by_employer"],
+    )
+
+    assert actual_hours == 3.0

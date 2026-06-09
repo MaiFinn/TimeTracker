@@ -15,18 +15,29 @@ ENTRY_STATUS_OPTIONS = {
 }
 
 
+ENTRY_STATUS_COLORS = {
+    "worked": "#2E7D32",
+    "cancelled_by_employer": "#1565C0",
+    "cancelled_by_employee": "#C62828",
+}
+
+
 def work_entries_to_calendar_events(work_entries: list[dict]) -> list[dict]:
     """Convert work entries to calendar events."""
 
     events = []
 
     for index, entry in enumerate(work_entries):
+        entry_status = entry.get("entry_status", "worked")
+
         events.append(
             {
                 "id": str(index),
                 "title": entry["total_time"],
                 "start": f"{entry['date']}T{entry['start_time']}",
                 "end": f"{entry['date']}T{entry['end_time']}",
+                "backgroundColor": ENTRY_STATUS_COLORS.get(entry_status, "#2E7D32"),
+                "borderColor": ENTRY_STATUS_COLORS.get(entry_status, "#2E7D32"),
             }
         )
 

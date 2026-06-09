@@ -9,7 +9,13 @@ def test_work_entry_handler(tmp_path):
     end_time = "15:00"
     file_path = tmp_path / "work_entries.json"
 
-    create_work_entry(date, start_time, end_time, file_path)
+    create_work_entry(
+    working_date=date,
+    start_time=start_time,
+    end_time=end_time,
+    entry_status="worked",
+    file_path=file_path,
+)
 
     with open(file_path, "r") as f:
         data = json.load(f)
@@ -23,6 +29,7 @@ def test_work_entry_handler(tmp_path):
         "start_time": "10:00:00",
         "end_time": "15:00:00",
         "total_time": "5:00:00",
+        "entry_status": "worked",
     }
 
     assert isinstance(entry["date"], str)

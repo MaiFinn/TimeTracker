@@ -9,6 +9,12 @@ from timetracker.summary import (
     calculate_work_balance,
 )
 
+STATUS_OPTIONS = {
+    "Worked": "worked",
+    "Cancelled by employer": "cancelled_by_employer",
+    "Cancelled by employee": "cancelled_by_employee",
+}
+
 
 def render_dashboard(
     contract: dict | None,
@@ -21,11 +27,59 @@ def render_dashboard(
         st.info("Create a contract to see your working time balance.")
         return
 
-    _render_total_balance(contract, work_entries)
-    _render_total_balance_chart(contract, work_entries)
+    included_statuses = _render_status_filter()
+
+    _render_total_balance(contract, work_entries, included_statuses)
+    _render_total_balance_chart(contract, work_entries, included_statuses)
+
     st.divider()
+
     _render_month_selector(month_names)
-    _render_monthly_balance(contract, work_entries, month_names)
+    _render_monthly_balance(contract, work_entries, month_names, included_statuses)
+
+
+def _render_status_filter() -> list[str]:
+    """Render status filter and return included entry statuses."""
+
+    st.subheader("Included entry types")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        include_worked = st.toggle(
+            "🟢 Worked",
+            value=True,
+        )
+
+    with col2:
+        include_employer = st.toggle(
+            "🔵 Cancelled by employer",
+            value=False,
+        )
+
+    with col3:
+        include_employee = st.toggle(
+            "🔴 Cancelled by employee",
+            value=False,
+        )
+
+    included_statuses = []
+
+    if include_worked:
+        included_statuses.append("worked")
+
+    if include_employer:
+        included_statuses.append("cancelled_by_employer")
+
+    if include_employee:
+        included_statuses.append("cancelled_by_employee")
+
+    if not included_statuses:
+        st.warning(
+            "No entry type selected. Balance is calculated with 0 actual hours."
+        )
+
+    return included_statuses
 
 
 def _render_month_selector(month_names: list[str]) -> None:
@@ -63,10 +117,15 @@ def _render_month_selector(month_names: list[str]) -> None:
 def _render_total_balance(
     contract: dict,
     work_entries: list[dict],
+    included_statuses: list[str],
 ) -> None:
     """Render total balance metrics."""
 
-    total_balance = calculate_work_balance(contract, work_entries)
+    total_balance = calculate_work_balance(
+        contract,
+        work_entries,
+        included_statuses=included_statuses,
+    )
 
     st.subheader("Total balance")
 
@@ -80,6 +139,7 @@ def _render_monthly_balance(
     contract: dict,
     work_entries: list[dict],
     month_names: list[str],
+    included_statuses: list[str],
 ) -> None:
     """Render monthly balance metrics."""
 
@@ -88,6 +148,7 @@ def _render_monthly_balance(
         work_entries,
         year=int(st.session_state.active_year),
         month=int(st.session_state.active_month),
+        included_statuses=included_statuses,
     )
 
     active_month_name = month_names[int(st.session_state.active_month) - 1]
@@ -112,6 +173,7 @@ def _render_monthly_balance(
 def _render_total_balance_chart(
     contract: dict,
     work_entries: list[dict],
+    included_statuses: list[str],
 ) -> None:
     """Render total balance history chart."""
 
@@ -135,6 +197,7 @@ def _render_total_balance_chart(
         work_entries,
         start_date=chart_start_date,
         end_date=chart_end_date,
+        included_statuses=included_statuses,
     )
 
     if not balance_history:
