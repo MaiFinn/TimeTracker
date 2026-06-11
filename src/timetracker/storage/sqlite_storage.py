@@ -51,6 +51,7 @@ def create_work_entry(
 
     return int(cursor.lastrowid)
 
+
 def load_work_entries(
     database_file: Path,
     user_id: str,

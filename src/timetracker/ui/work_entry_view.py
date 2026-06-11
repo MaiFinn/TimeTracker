@@ -8,6 +8,14 @@ from timetracker.storage.json_storage import load_json, save_json
 from timetracker.utils.time_utils import calculate_total_time
 from timetracker.work_entry_handler import create_work_entry
 
+from timetracker.config.paths import ATTACHMENTS_DIR, DATABASE_FILE
+from timetracker.storage.sqlite_storage import (
+    add_attachment,
+    delete_work_entry,
+    update_work_entry,
+)
+
+
 ENTRY_STATUS_OPTIONS = {
     "Worked": "worked",
     "Cancelled by employee": "cancelled_by_employee",
@@ -26,7 +34,7 @@ def work_entries_to_calendar_events(work_entries: list[dict]) -> list[dict]:
 
     events = []
 
-    for index, entry in enumerate(work_entries):
+    for entry in work_entries:
         entry_status = entry.get("entry_status", "worked")
         title_suffix = ""
 
@@ -38,7 +46,7 @@ def work_entries_to_calendar_events(work_entries: list[dict]) -> list[dict]:
 
         events.append(
             {
-                "id": str(index),
+                "id": str(entry["id"]),
                 "title": f"{entry['total_time']}{title_suffix}",
                 "start": f"{entry['date']}T{entry['start_time']}",
                 "end": f"{entry['date']}T{entry['end_time']}",
@@ -379,10 +387,12 @@ def _render_add_work_entry_form(selected_date: str) -> None:
             st.error(str(error))
 
 
-def _render_edit_work_entry_form(work_entries: list[dict], entry_id: int) -> None:
+def _render_edit_work_entry_form(
+    selected_entry: dict,
+) -> None:
     """Render form to edit an existing work entry."""
 
-    selected_entry = work_entries[entry_id]
+    work_entry_id = selected_entry["id"]
 
     st.subheader("Edit work entry")
 
@@ -424,9 +434,9 @@ def _render_edit_work_entry_form(work_entries: list[dict], entry_id: int) -> Non
 
     existing_attachments = selected_entry.get("attachments", [])
 
-    attachments_to_keep = _render_editable_attachments(
+    _render_editable_attachments(
         existing_attachments,
-        entry_id,
+        work_entry_id,
     )
 
     new_uploaded_files = st.file_uploader(
@@ -439,17 +449,24 @@ def _render_edit_work_entry_form(work_entries: list[dict], entry_id: int) -> Non
         try:
             new_attachments = _save_uploaded_files(new_uploaded_files)
 
-            work_entries[entry_id] = {
-                "date": str(selected_date),
-                "start_time": str(edit_start_time),
-                "end_time": str(edit_end_time),
-                "total_time": calculate_total_time(edit_start_time, edit_end_time),
-                "entry_status": edit_entry_status,
-                "note": edit_note,
-                "attachments": attachments_to_keep + new_attachments,
-            }
+            update_work_entry(
+                database_file=DATABASE_FILE,
+                work_entry_id=work_entry_id,
+                date=str(selected_date),
+                start_time=str(edit_start_time),
+                end_time=str(edit_end_time),
+                total_time=calculate_total_time(edit_start_time, edit_end_time),
+                entry_status=edit_entry_status,
+                note=edit_note,
+            )
 
-            save_json(WORK_ENTRIES_FILE, work_entries)
+            for attachment in new_attachments:
+                add_attachment(
+                    database_file=DATABASE_FILE,
+                    work_entry_id=work_entry_id,
+                    file_name=attachment["file_name"],
+                    file_path=attachment["file_path"],
+                )
 
             st.success("Work entry updated.")
             _clear_work_entry_selection()
@@ -460,8 +477,10 @@ def _render_edit_work_entry_form(work_entries: list[dict], entry_id: int) -> Non
             st.error(str(error))
 
     if st.button("Delete work entry"):
-        work_entries.pop(entry_id)
-        save_json(WORK_ENTRIES_FILE, work_entries)
+        delete_work_entry(
+            database_file=DATABASE_FILE,
+            work_entry_id=work_entry_id,
+        )
 
         st.success("Work entry deleted.")
         _clear_work_entry_selection()
