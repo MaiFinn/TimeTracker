@@ -9,6 +9,12 @@ from timetracker.utils.time_utils import calculate_total_time
 
 logger = logging.getLogger(__name__)
 
+VALID_ENTRY_STATUSES = {
+    "worked",
+    "cancelled_by_employee",
+    "cancelled_by_employer",
+}
+
 
 @dataclass
 class WorkEntry:
@@ -19,6 +25,8 @@ class WorkEntry:
     end_time: str
     total_time: str
     entry_status: str
+    note: str = ""
+    attachments: list[dict] | None = None
 
 
 def create_work_entry(
@@ -26,15 +34,19 @@ def create_work_entry(
     start_time: str,
     end_time: str,
     entry_status: str = "worked",
+    note: str = "",
+    attachments: list[dict] | None = None,
     file_path: Path | None = None,
 ) -> None:
     """Create a work entry."""
 
     if file_path is None:
         file_path = WORK_ENTRIES_FILE
-        
-    logger.info(f"Writing work entry file to {file_path}.")
 
+    if entry_status not in VALID_ENTRY_STATUSES:
+        raise ValueError(f"Invalid entry status: {entry_status}")
+
+    logger.info(f"Writing work entry file to {file_path}.")
 
     parsed_start_time = datetime.strptime(start_time, "%H:%M").time()
     parsed_end_time = datetime.strptime(end_time, "%H:%M").time()
@@ -47,6 +59,8 @@ def create_work_entry(
         end_time=str(parsed_end_time),
         total_time=duration,
         entry_status=entry_status,
+        note=note,
+        attachments=attachments or [],
     )
 
     work_entries = load_json(file_path, default=[])

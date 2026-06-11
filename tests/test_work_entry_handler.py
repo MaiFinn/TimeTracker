@@ -30,6 +30,8 @@ def test_work_entry_handler(tmp_path):
         "end_time": "15:00:00",
         "total_time": "5:00:00",
         "entry_status": "worked",
+        "note": "",
+        "attachments": [],
     }
 
     assert isinstance(entry["date"], str)

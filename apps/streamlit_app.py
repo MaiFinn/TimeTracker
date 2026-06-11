@@ -42,6 +42,9 @@ if "selected_date" not in st.session_state:
 if "selected_entry_id" not in st.session_state:
     st.session_state.selected_entry_id = None
 
+if "view_entry_id" not in st.session_state:
+    st.session_state.view_entry_id = None
+
 if "active_year" not in st.session_state:
     st.session_state.active_year = today.year
 
