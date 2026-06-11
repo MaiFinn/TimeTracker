@@ -218,3 +218,67 @@ def delete_attachment(
         )
 
         connection.commit()
+
+def update_work_entry(
+    database_file: Path,
+    work_entry_id: int,
+    date: str,
+    start_time: str,
+    end_time: str,
+    total_time: str,
+    entry_status: str,
+    note: str,
+) -> None:
+    """Update work entry."""
+
+    with get_connection(database_file) as connection:
+        connection.execute(
+            """
+            UPDATE work_entries
+            SET
+                date = ?,
+                start_time = ?,
+                end_time = ?,
+                total_time = ?,
+                entry_status = ?,
+                note = ?
+            WHERE id = ?
+            """,
+            (
+                date,
+                start_time,
+                end_time,
+                total_time,
+                entry_status,
+                note,
+                work_entry_id,
+            ),
+        )
+
+        connection.commit()
+
+
+def delete_work_entry(
+    database_file: Path,
+    work_entry_id: int,
+) -> None:
+    """Delete work entry and related attachments."""
+
+    with get_connection(database_file) as connection:
+        connection.execute(
+            """
+            DELETE FROM attachments
+            WHERE work_entry_id = ?
+            """,
+            (work_entry_id,),
+        )
+
+        connection.execute(
+            """
+            DELETE FROM work_entries
+            WHERE id = ?
+            """,
+            (work_entry_id,),
+        )
+
+        connection.commit()

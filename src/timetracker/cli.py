@@ -69,7 +69,6 @@ def create_new_contract(
     typer.echo("Contract successfully created.")
 
 @app.command()
-@app.command()
 def add_work_entry(
     date: str = typer.Option(..., "--working-date", "-wd"),
     start_time: str = typer.Option(..., "--start-time", "-st"),
