@@ -69,21 +69,20 @@ def create_new_contract(
     typer.echo("Contract successfully created.")
 
 @app.command()
+@app.command()
 def add_work_entry(
     date: str = typer.Option(..., "--working-date", "-wd"),
     start_time: str = typer.Option(..., "--start-time", "-st"),
     end_time: str = typer.Option(..., "--end-time", "-et"),
-    file_path: Path | None = typer.Option(None, "--file-path"),
 ) -> None:
     """Create a new work entry."""
 
     logger.info("Create new work entry.")
 
     create_work_entry(
-        date,
-        start_time,
-        end_time,
-        file_path=file_path,
+        working_date=date,
+        start_time=start_time,
+        end_time=end_time,
     )
 
     logger.info("Created new work entry.")

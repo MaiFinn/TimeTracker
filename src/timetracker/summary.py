@@ -64,8 +64,17 @@ def calculate_daily_actual_hours(work_entries: list[dict]) -> dict[str, float]:
     return daily_hours
 
 def parse_duration(duration: str) -> timedelta:
-    """Parse duration string in H:MM:SS format."""
-    hours, minutes, seconds = duration.split(":")
+    parts = duration.split(":")
+
+    if len(parts) == 2:
+        hours, minutes = parts
+        seconds = 0
+
+    elif len(parts) == 3:
+        hours, minutes, seconds = parts
+
+    else:
+        raise ValueError(f"Invalid duration format: {duration}")
 
     return timedelta(
         hours=int(hours),

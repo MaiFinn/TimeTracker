@@ -13,6 +13,11 @@ from timetracker.ui.contract_view import render_contract_page
 from timetracker.ui.dashboard_view import render_dashboard
 from timetracker.ui.work_entry_view import render_work_entry_page
 
+from timetracker.config.paths import DATABASE_FILE
+from timetracker.storage.sqlite_storage import load_contract, load_work_entries
+
+CURRENT_USER_ID = "finn"
+
 
 MONTH_NAMES = [
     "January",
@@ -52,8 +57,8 @@ if "active_month" not in st.session_state:
     st.session_state.active_month = today.month
 
 
-contract = load_json(CONTRACT_FILE, default=None)
-work_entries = load_json(WORK_ENTRIES_FILE, default=[])
+contract = load_contract(DATABASE_FILE, CURRENT_USER_ID)
+work_entries = load_work_entries(DATABASE_FILE, CURRENT_USER_ID)
 
 
 if st.session_state.page == "home":

@@ -1,40 +1,33 @@
+from timetracker.database.schema import initialize_database
+from timetracker.storage.sqlite_storage import load_work_entries
 from timetracker.work_entry_handler import create_work_entry
-import json
-from datetime import datetime, date, time
+
 
 def test_work_entry_handler(tmp_path):
-    
-    date = "2026-02-10"
-    start_time = "10:00"
-    end_time = "15:00"
-    file_path = tmp_path / "work_entries.json"
+
+    database_file = tmp_path / "test.db"
+
+    initialize_database(database_file)
 
     create_work_entry(
-    working_date=date,
-    start_time=start_time,
-    end_time=end_time,
-    entry_status="worked",
-    file_path=file_path,
-)
+        working_date="2026-02-10",
+        start_time="10:00",
+        end_time="15:00",
+        entry_status="worked",
+        database_file=database_file,
+    )
 
-    with open(file_path, "r") as f:
-        data = json.load(f)
-    
-    assert file_path.exists()
-    
-    entry = data[0]
+    entries = load_work_entries(
+        database_file,
+        "finn",
+    )
 
-    assert entry == {
-        "date": "2026-02-10",
-        "start_time": "10:00:00",
-        "end_time": "15:00:00",
-        "total_time": "5:00:00",
-        "entry_status": "worked",
-        "note": "",
-        "attachments": [],
-    }
+    assert len(entries) == 1
 
-    assert isinstance(entry["date"], str)
-    assert isinstance(entry["start_time"], str)
-    assert isinstance(entry["end_time"], str)
-    assert isinstance(entry["total_time"], str)
+    entry = entries[0]
+
+    assert entry["date"] == "2026-02-10"
+    assert entry["start_time"] == "10:00:00"
+    assert entry["end_time"] == "15:00:00"
+    assert entry["total_time"] == "5:00:00"
+    assert entry["entry_status"] == "worked"
