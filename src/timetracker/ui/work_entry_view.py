@@ -4,14 +4,15 @@ import streamlit as st
 from streamlit_calendar import calendar
 
 from timetracker.config.paths import ATTACHMENTS_DIR, WORK_ENTRIES_FILE
-from timetracker.storage.json_storage import load_json, save_json
 from timetracker.utils.time_utils import calculate_total_time
 from timetracker.work_entry_handler import create_work_entry
 
 from timetracker.config.paths import ATTACHMENTS_DIR, DATABASE_FILE
 from timetracker.storage.sqlite_storage import (
     add_attachment,
+    delete_attachment,
     delete_work_entry,
+    load_work_entries,
     update_work_entry,
 )
 
@@ -27,6 +28,15 @@ ENTRY_STATUS_COLORS = {
     "cancelled_by_employer": "#1565C0",
     "cancelled_by_employee": "#C62828",
 }
+
+
+def _parse_time(value: str):
+    """Parse HH:MM or HH:MM:SS time strings."""
+
+    if len(value) == 5:
+        return datetime.strptime(value, "%H:%M").time()
+
+    return datetime.strptime(value, "%H:%M:%S").time()
 
 
 def work_entries_to_calendar_events(work_entries: list[dict]) -> list[dict]:
@@ -73,7 +83,7 @@ def render_work_entry_page(
 
     st.subheader("Work calendar" if view_mode == "Calendar" else "Work entry list")
 
-    work_entries = load_json(WORK_ENTRIES_FILE, default=[])
+    work_entries = load_work_entries(DATABASE_FILE, "finn")
 
     if view_mode == "Calendar":
         _render_calendar_view(
@@ -88,16 +98,22 @@ def render_work_entry_page(
         _render_add_work_entry_form(st.session_state.selected_date)
 
     if st.session_state.view_entry_id is not None:
-        entry_id = st.session_state.view_entry_id
+        selected_entry = _get_work_entry_by_id(
+            work_entries,
+            st.session_state.view_entry_id,
+        )
 
-        if 0 <= entry_id < len(work_entries):
-            _render_work_entry_detail(work_entries, entry_id)
+        if selected_entry is not None:
+            _render_work_entry_detail(selected_entry)
 
     if st.session_state.selected_entry_id is not None:
-        entry_id = st.session_state.selected_entry_id
+        selected_entry = _get_work_entry_by_id(
+            work_entries,
+            st.session_state.selected_entry_id,
+        )
 
-        if 0 <= entry_id < len(work_entries):
-            _render_edit_work_entry_form(work_entries, entry_id)
+        if selected_entry is not None:
+            _render_edit_work_entry_form(selected_entry)
 
 
 def _render_calendar_view(
@@ -228,7 +244,7 @@ def _render_work_entry_list(work_entries: list[dict]) -> None:
             key=f"view_entry_list_{index}",
             width="stretch",
         ):
-            st.session_state.view_entry_id = index
+            st.session_state.view_entry_id = entry["id"]
             st.session_state.selected_entry_id = None
             st.session_state.selected_date = None
             st.rerun()
@@ -238,7 +254,7 @@ def _render_work_entry_list(work_entries: list[dict]) -> None:
             key=f"edit_entry_list_{index}",
             width="stretch",
         ):
-            st.session_state.selected_entry_id = index
+            st.session_state.selected_entry_id = entry["id"]
             st.session_state.view_entry_id = None
             st.session_state.selected_date = None
             st.rerun()
@@ -404,13 +420,13 @@ def _render_edit_work_entry_form(
 
     edit_start_time = st.time_input(
         "Start time",
-        value=datetime.strptime(selected_entry["start_time"], "%H:%M:%S").time(),
+        value=_parse_time(selected_entry["start_time"]),
         key="edit_start_time",
     )
 
     edit_end_time = st.time_input(
         "End time",
-        value=datetime.strptime(selected_entry["end_time"], "%H:%M:%S").time(),
+        value=_parse_time(selected_entry["end_time"]),
         key="edit_end_time",
     )
 
@@ -489,36 +505,36 @@ def _render_edit_work_entry_form(
 
 def _render_editable_attachments(
     attachments: list[dict],
-    entry_id: int,
-) -> list[dict]:
+    work_entry_id: int,
+) -> None:
     """Render existing attachments with delete option."""
 
     if not attachments:
-        return []
+        return
 
     st.markdown("**Existing attachments**")
 
-    attachments_to_keep = []
-
-    for index, attachment in enumerate(attachments):
+    for attachment in attachments:
         col1, col2 = st.columns([4, 1])
 
         col1.write(f"📎 {attachment['file_name']}")
 
-        delete_attachment = col2.checkbox(
+        if col2.button(
             "Delete",
-            key=f"delete_attachment_{entry_id}_{index}",
-        )
+            key=f"delete_attachment_{work_entry_id}_{attachment['id']}",
+        ):
+            delete_attachment(
+                database_file=DATABASE_FILE,
+                attachment_id=attachment["id"],
+            )
 
-        if not delete_attachment:
-            attachments_to_keep.append(attachment)
+            st.success("Attachment deleted.")
+            st.rerun()
 
-    return attachments_to_keep
-
-def _render_work_entry_detail(work_entries: list[dict], entry_id: int) -> None:
+def _render_work_entry_detail(entry: dict) -> None:
     """Render detailed work entry view."""
 
-    entry = work_entries[entry_id]
+    work_entry_id = entry["id"]
 
     st.subheader("Work entry details")
 
@@ -553,13 +569,13 @@ def _render_work_entry_detail(work_entries: list[dict], entry_id: int) -> None:
                     label=f"📎 {attachment['file_name']}",
                     data=f,
                     file_name=attachment["file_name"],
-                    key=f"detail_attachment_{entry_id}_{attachment['file_name']}",
+                    key=f"detail_attachment_{work_entry_id}_{attachment['file_name']}",
                 )
 
     col1, col2 = st.columns(2)
 
     if col1.button("Edit entry", width="stretch"):
-        st.session_state.selected_entry_id = entry_id
+        st.session_state.selected_entry_id = work_entry_id
         st.session_state.view_entry_id = None
         st.session_state.selected_date = None
         st.session_state.ignore_next_calendar_click = True
@@ -569,3 +585,15 @@ def _render_work_entry_detail(work_entries: list[dict], entry_id: int) -> None:
         _clear_work_entry_selection()
         st.session_state.ignore_next_calendar_click = True
         st.rerun()
+
+def _get_work_entry_by_id(
+    work_entries: list[dict],
+    work_entry_id: int,
+) -> dict | None:
+    """Return work entry by database id."""
+
+    for entry in work_entries:
+        if int(entry["id"]) == int(work_entry_id):
+            return entry
+
+    return None
