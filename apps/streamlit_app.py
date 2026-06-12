@@ -15,7 +15,7 @@ from timetracker.ui.work_entry_view import render_work_entry_page
 from timetracker.config.paths import DATABASE_FILE
 from timetracker.storage.sqlite_storage import load_contract, load_work_entries
 
-CURRENT_USER_ID = "finn"
+from timetracker.ui.auth_view import render_login_page, render_logout_button
 
 
 MONTH_NAMES = [
@@ -34,6 +34,14 @@ MONTH_NAMES = [
 ]
 
 st.title("TimeTracker")
+
+if "user_id" not in st.session_state:
+    render_login_page()
+    st.stop()
+
+CURRENT_USER_ID = st.session_state.username
+
+render_logout_button()
 
 today = date.today()
 
