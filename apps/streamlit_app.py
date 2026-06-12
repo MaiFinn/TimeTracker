@@ -3,7 +3,6 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
-from timetracker.config.paths import CONTRACT_FILE, WORK_ENTRIES_FILE
 from timetracker.reports.monthly_report import (
     build_monthly_report_rows,
     build_total_report_row,

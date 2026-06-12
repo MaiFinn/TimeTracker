@@ -1,25 +1,25 @@
 from timetracker.contract_handler import create_contract
-from pathlib import Path
-import json
+from timetracker.database.schema import initialize_database
+from timetracker.storage.sqlite_storage import load_contract
+
 
 def test_create_contract(tmp_path) -> None:
+    database_file = tmp_path / "test.db"
+    initialize_database(database_file)
 
-    company_name="test_company"
-    start_date="2026-02-10"
-    salary_per_hour=20
-    hours_per_week=5
-    file_path=tmp_path / "contract.json"
+    create_contract(
+        company_name="test_company",
+        start_date="2026-02-10",
+        salary_per_hour=20,
+        hours_per_week=5,
+        user_id="test_user",
+        database_file=database_file,
+    )
 
-    create_contract(company_name, start_date, salary_per_hour, hours_per_week, file_path)
+    contract = load_contract(database_file, "test_user")
 
-    assert file_path.exists()
-
-    with open(file_path, "r") as f:
-        data = json.load(f)
-    
-    assert data == {
-        "company_name": "test_company",
-        "start_date": "2026-02-10",
-        "salary_per_hour": 20,
-        "hours_per_week": 5,
-    }
+    assert contract is not None
+    assert contract["company_name"] == "test_company"
+    assert contract["start_date"] == "2026-02-10"
+    assert contract["salary_per_hour"] == 20
+    assert contract["hours_per_week"] == 5
