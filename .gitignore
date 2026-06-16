@@ -4,6 +4,7 @@ tracker.json
 # attachements
 artifacts/attachments/*
 !artifacts/attachments/.gitkeep
+artifacts/timetracker.db
 
 # test notebooks
 notebooks/
